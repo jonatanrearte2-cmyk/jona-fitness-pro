@@ -1,0 +1,48 @@
+
+name: Build JONA FITNESS PRO APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Extraer proyecto
+        run: |
+          unzip jona_fitness_pro_android_build.zip -d extracted
+          PROJECT_DIR="$(dirname "$(find extracted -name pubspec.yaml -print -quit)")"
+          test -f "$PROJECT_DIR/pubspec.yaml"
+          mkdir build_app
+          flutter create --platforms=android --org com.jonafitnesspro build_app
+          cp "$PROJECT_DIR/pubspec.yaml" build_app/
+          cp -R "$PROJECT_DIR/lib" build_app/
+
+      - name: Instalar dependencias
+        working-directory: build_app
+        run: flutter pub get
+
+      - name: Construir APK
+        working-directory: build_app
+        run: flutter build apk --release
+
+      - name: Guardar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: jona-fitness-pro-android-apk
+          path: build_app/build/app/outputs/flutter-apk/app-release.apk
